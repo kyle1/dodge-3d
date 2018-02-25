@@ -30,21 +30,21 @@ typedef Flt	Matrix[4][4];
 #define VecCopy(a,b) (b)[0]=(a)[0];(b)[1]=(a)[1];(b)[2]=(a)[2];
 #define VecAdd(a,b,c) \
 	(c)[0]=(a)[0]+(b)[0];\
-	(c)[1]=(a)[1]+(b)[1];\
-	(c)[2]=(a)[2]+(b)[2]
+(c)[1]=(a)[1]+(b)[1];\
+(c)[2]=(a)[2]+(b)[2]
 #define VecSub(a,b,c) \
 	(c)[0]=(a)[0]-(b)[0]; \
-	(c)[1]=(a)[1]-(b)[1]; \
-	(c)[2]=(a)[2]-(b)[2]
+(c)[1]=(a)[1]-(b)[1]; \
+(c)[2]=(a)[2]-(b)[2]
 #define VecS(A,a,b) (b)[0]=(A)*(a)[0]; (b)[1]=(A)*(a)[1]; (b)[2]=(A)*(a)[2]
 #define VecAddS(A,a,b,c) \
 	(c)[0]=(A)*(a)[0]+(b)[0]; \
-	(c)[1]=(A)*(a)[1]+(b)[1]; \
-	(c)[2]=(A)*(a)[2]+(b)[2]
+(c)[1]=(A)*(a)[1]+(b)[1]; \
+(c)[2]=(A)*(a)[2]+(b)[2]
 #define VecCross(a,b,c) \
 	(c)[0]=(a)[1]*(b)[2]-(a)[2]*(b)[1]; \
-	(c)[1]=(a)[2]*(b)[0]-(a)[0]*(b)[2]; \
-	(c)[2]=(a)[0]*(b)[1]-(a)[1]*(b)[0]
+(c)[1]=(a)[2]*(b)[0]-(a)[0]*(b)[2]; \
+(c)[2]=(a)[0]*(b)[1]-(a)[1]*(b)[0]
 #define VecZero(v) (v)[0]=0.0;(v)[1]=0.0;v[2]=0.0
 #define ABS(a) (((a)<0)?(-(a)):(a))
 #define SGN(a) (((a)<0)?(-1):(1))
@@ -60,118 +60,123 @@ int check_keys(XEvent *e);
 void physics();
 void render();
 
+int keys[65536];
+float collision[100][2];
+
 class Global {
-public:
-	int xres, yres;
-	Flt aspectRatio;
-	Vec cameraPosition;
-	Vec dir;
-	std::string facing;
-	GLfloat lightPosition[4];
-	Global() {
-		//constructor
-		xres=640;
-		yres=480;
-		aspectRatio = (GLfloat)xres / (GLfloat)yres;
-		MakeVector(0.0, 1.0, 8.0, cameraPosition);
-		dir[0] = 0.0 - cameraPosition[0];
-		dir[1] = 0.0 - cameraPosition[1];
-		dir[2] = 0.0 - cameraPosition[2];
-		//light is up high, right a little, toward a little
-		MakeVector(100.0f, 240.0f, 40.0f, lightPosition);
-		lightPosition[3] = 1.0f;
-		facing = "north";
-	}
+	public:
+		int xres, yres;
+		bool display_startmenu;
+		Flt aspectRatio;
+		Vec cameraPosition;
+		Vec dir;
+		std::string facing;
+		GLfloat lightPosition[4];
+		Global() {
+			//constructor
+			xres=640;
+			yres=480;
+			display_startmenu = true;
+			aspectRatio = (GLfloat)xres / (GLfloat)yres;
+			MakeVector(0.0, 1.0, 8.0, cameraPosition);
+			dir[0] = 0.0 - cameraPosition[0];
+			dir[1] = 0.0 - cameraPosition[1];
+			dir[2] = 0.0 - cameraPosition[2];
+			//light is up high, right a little, toward a little
+			MakeVector(100.0f, 240.0f, 40.0f, lightPosition);
+			lightPosition[3] = 1.0f;
+			facing = "north";
+		}
 } g;
 
 class X11_wrapper {
-private:
-	Display *dpy;
-	Window win;
-	GLXContext glc;
-public:
-	X11_wrapper() {
-		//Look here for information on XVisualInfo parameters.
-		//http://www.talisman.org/opengl-1.1/Reference/glXChooseVisual.html
-		Window root;
-		GLint att[] = { GLX_RGBA,
-						GLX_STENCIL_SIZE, 2,
-						GLX_DEPTH_SIZE, 24,
-						GLX_DOUBLEBUFFER, None };
-		//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
-		//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
-		//XVisualInfo *vi;
-		Colormap cmap;
-		XSetWindowAttributes swa;
-		setup_screen_res(640, 480);
-		dpy = XOpenDisplay(NULL);
-		if (dpy == NULL) {
-			printf("\n\tcannot connect to X server\n\n");
-			exit(EXIT_FAILURE);
+	private:
+		Display *dpy;
+		Window win;
+		GLXContext glc;
+	public:
+		X11_wrapper() {
+			//Look here for information on XVisualInfo parameters.
+			//http://www.talisman.org/opengl-1.1/Reference/glXChooseVisual.html
+			Window root;
+			GLint att[] = { GLX_RGBA,
+				GLX_STENCIL_SIZE, 2,
+				GLX_DEPTH_SIZE, 24,
+				GLX_DOUBLEBUFFER, None };
+			//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, GLX_DOUBLEBUFFER, None };
+			//GLint att[] = { GLX_RGBA, GLX_DEPTH_SIZE, 24, None };
+			//XVisualInfo *vi;
+			Colormap cmap;
+			XSetWindowAttributes swa;
+			setup_screen_res(640, 480);
+			dpy = XOpenDisplay(NULL);
+			if (dpy == NULL) {
+				printf("\n\tcannot connect to X server\n\n");
+				exit(EXIT_FAILURE);
+			}
+			root = DefaultRootWindow(dpy);
+			XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
+			if (vi == NULL) {
+				printf("\n\tno appropriate visual found\n\n");
+				exit(EXIT_FAILURE);
+			} 
+			cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
+			swa.colormap = cmap;
+			swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
+				StructureNotifyMask | SubstructureNotifyMask;
+			win = XCreateWindow(dpy, root, 0, 0, g.xres, g.yres, 0,
+					vi->depth, InputOutput, vi->visual,
+					CWColormap | CWEventMask, &swa);
+			set_title();
+			glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
+			glXMakeCurrent(dpy, win, glc);
 		}
-		root = DefaultRootWindow(dpy);
-		XVisualInfo *vi = glXChooseVisual(dpy, 0, att);
-		if (vi == NULL) {
-			printf("\n\tno appropriate visual found\n\n");
-			exit(EXIT_FAILURE);
-		} 
-		cmap = XCreateColormap(dpy, root, vi->visual, AllocNone);
-		swa.colormap = cmap;
-		swa.event_mask = ExposureMask | KeyPressMask | KeyReleaseMask |
-							StructureNotifyMask | SubstructureNotifyMask;
-		win = XCreateWindow(dpy, root, 0, 0, g.xres, g.yres, 0,
-								vi->depth, InputOutput, vi->visual,
-								CWColormap | CWEventMask, &swa);
-		set_title();
-		glc = glXCreateContext(dpy, vi, NULL, GL_TRUE);
-		glXMakeCurrent(dpy, win, glc);
-	}
-	~X11_wrapper() {
-		XDestroyWindow(dpy, win);
-		XCloseDisplay(dpy);
-	}
-	void setup_screen_res(const int w, const int h) {
-		g.xres = w;
-		g.yres = h;
-		g.aspectRatio = (GLfloat)g.xres / (GLfloat)g.yres;
-	}
-	void check_resize(XEvent *e) {
-		//The ConfigureNotify is sent by the
-		//server if the window is resized.
-		if (e->type != ConfigureNotify)
-			return;
-		XConfigureEvent xce = e->xconfigure;
-		if (xce.width != g.xres || xce.height != g.yres) {
-			//Window size did change.
-			reshape_window(xce.width, xce.height);
+		~X11_wrapper() {
+			XDestroyWindow(dpy, win);
+			XCloseDisplay(dpy);
 		}
-	}
-	void reshape_window(int width, int height) {
-		//window has been resized.
-		setup_screen_res(width, height);
-		//
-		glViewport(0, 0, (GLint)width, (GLint)height);
-		glMatrixMode(GL_PROJECTION); glLoadIdentity();
-		glMatrixMode(GL_MODELVIEW); glLoadIdentity();
-		glOrtho(0, g.xres, 0, g.yres, -1, 1);
-		set_title();
-	}
-	void set_title() {
-		//Set the window title bar.
-		XMapWindow(dpy, win);
-		XStoreName(dpy, win, "car demo");
-	}
-	bool getXPending() {
-		return XPending(dpy);
-	}
-	XEvent getXNextEvent() {
-		XEvent e;
-		XNextEvent(dpy, &e);
-		return e;
-	}
-	void swapBuffers() {
-		glXSwapBuffers(dpy, win);
-	}
+		void setup_screen_res(const int w, const int h) {
+			g.xres = w;
+			g.yres = h;
+			g.aspectRatio = (GLfloat)g.xres / (GLfloat)g.yres;
+		}
+		void check_resize(XEvent *e) {
+			//The ConfigureNotify is sent by the
+			//server if the window is resized.
+			if (e->type != ConfigureNotify)
+				return;
+			XConfigureEvent xce = e->xconfigure;
+			if (xce.width != g.xres || xce.height != g.yres) {
+				//Window size did change.
+				reshape_window(xce.width, xce.height);
+			}
+		}
+		void reshape_window(int width, int height) {
+			//window has been resized.
+			setup_screen_res(width, height);
+			//
+			glViewport(0, 0, (GLint)width, (GLint)height);
+			glMatrixMode(GL_PROJECTION); glLoadIdentity();
+			glMatrixMode(GL_MODELVIEW); glLoadIdentity();
+			glOrtho(0, g.xres, 0, g.yres, -1, 1);
+			set_title();
+		}
+		void set_title() {
+			//Set the window title bar.
+			XMapWindow(dpy, win);
+			XStoreName(dpy, win, "car demo");
+		}
+		bool getXPending() {
+			return XPending(dpy);
+		}
+		XEvent getXNextEvent() {
+			XEvent e;
+			XNextEvent(dpy, &e);
+			return e;
+		}
+		void swapBuffers() {
+			glXSwapBuffers(dpy, win);
+		}
 } x11;
 
 
@@ -186,8 +191,10 @@ int main()
 			check_mouse(&e);
 			done = check_keys(&e);
 		}
-		physics();
 		render();
+		if (!g.display_startmenu) {
+			physics();
+		}
 		x11.swapBuffers();
 	}
 	cleanup_fonts();
@@ -267,77 +274,87 @@ int check_keys(XEvent *e)
 	//Was there input from the keyboard?
 	if (e->type == KeyPress) {
 		int key = (XLookupKeysym(&e->xkey, 0) & 0x0000ffff);
-		switch(key) {
-			case XK_1:
-				break;
-			case XK_w:
-				if (g.facing == "north") {
-					g.cameraPosition[2] -= 0.25;
-				} else if (g.facing == "east") {
-					g.cameraPosition[0] += 0.1;
-				} else {
-					g.cameraPosition[0] -= 0.1;
-				}
-				break;
-			case XK_d:
-				if (g.facing == "north") {
-					g.cameraPosition[0] += 0.1;
-				} else if (g.facing == "east") {
-					g.cameraPosition[2] += 0.25;
-				} else {
-					g.cameraPosition[2] -= 0.25;
-				}
-				break;
-			case XK_a:
-				if (g.facing == "north") {
-					g.cameraPosition[0] -= 0.1;
-				} else if (g.facing == "east") {
-					g.cameraPosition[2] -= 0.25;
-				} else {
-					g.cameraPosition[2] += 0.25;
-				}
-				break;
-			case XK_s:
-				if (g.facing == "north") {
-					g.cameraPosition[2] += 0.25;
-				} else if (g.facing == "east") {
-					g.cameraPosition[0] -= 0.1;
-				} else {
-					g.cameraPosition[0] += 0.1;
-				}
-				break;
-			case XK_Right:
-				if (g.facing == "north") {
-					// look east
-					g.dir[0] += 1.0;
-					g.dir[1] = 0.0;
-					g.dir[2] = 0.0;
-					g.facing = "east";
-				} else {
-					// look north
-					g.dir[0] = 0;
-					g.dir[1] = 0;
-					g.dir[2] = -1;
-					g.facing = "north";
-				}
-				break;	
-			case XK_Left:
-				if (g.facing == "north") {
-					// look west
-					g.dir[0] -= 1.0;
-					g.dir[1] = 0.0;
-					g.dir[2] = 0.0;
-					g.facing = "west";
-				} else {
-					// look north
-					g.dir[0] = 0;
-					g.dir[1] = 0;
-					g.dir[2] = -1;
-					g.facing = "north";
-				}
-				break;
-			case XK_Escape:
-				return 1;
+		if (g.display_startmenu) {
+			switch(key) {
+				case XK_Return:
+					g.display_startmenu = false;
+					break;
+			}
+		} else {
+			switch(key) {
+				case XK_1:
+					break;
+				case XK_w:
+					if (g.facing == "north") {
+						g.cameraPosition[2] -= 0.3;
+					} else if (g.facing == "east") {
+						g.cameraPosition[0] += 0.1;
+					} else {
+						g.cameraPosition[0] -= 0.1;
+					}
+					break;
+				case XK_d:
+					if (g.facing == "north") {
+						if (g.cameraPosition[0] <= 4.8)
+							g.cameraPosition[0] += 0.1;
+					} else if (g.facing == "east") {
+						g.cameraPosition[2] += 0.3;
+					} else {
+						g.cameraPosition[2] -= 0.3;
+					}
+					break;
+				case XK_a:
+					if (g.facing == "north") {
+						if (g.cameraPosition[0] >= -4.8)
+							g.cameraPosition[0] -= 0.1;
+					} else if (g.facing == "east") {
+						g.cameraPosition[2] -= 0.3;
+					} else {
+						g.cameraPosition[2] += 0.3;
+					}
+					break;
+				case XK_s:
+					if (g.facing == "north") {
+						g.cameraPosition[2] += 0.3;
+					} else if (g.facing == "east") {
+						g.cameraPosition[0] -= 0.1;
+					} else {
+						g.cameraPosition[0] += 0.1;
+					}
+					break;
+				case XK_Right:
+					if (g.facing == "north") {
+						// look east
+						g.dir[0] += 1.0;
+						g.dir[1] = 0.0;
+						g.dir[2] = 0.0;
+						g.facing = "east";
+					} else if (g.facing == "west") {
+						// look north
+						g.dir[0] = 0;
+						g.dir[1] = 0;
+						g.dir[2] = -1;
+						g.facing = "north";
+					}
+					break;	
+				case XK_Left:
+					if (g.facing == "north") {
+						// look west
+						g.dir[0] -= 1.0;
+						g.dir[1] = 0.0;
+						g.dir[2] = 0.0;
+						g.facing = "west";
+					} else if (g.facing == "east") {
+						// look north
+						g.dir[0] = 0;
+						g.dir[1] = 0;
+						g.dir[2] = -1;
+						g.facing = "north";
+					}
+					break;
+				case XK_Escape:
+					return 1;
+			}
 		}
 	}
 	return 0;
@@ -350,43 +367,43 @@ void box(float w1, float h1, float d1)
 	float h=h1*0.5;
 	//notice the normals being set
 	glBegin(GL_QUADS);
-		//top
-		glNormal3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( w, h,-d);
-		glVertex3f(-w, h,-d);
-		glVertex3f(-w, h, d);
-		glVertex3f( w, h, d);
-		// bottom
-		glNormal3f( 0.0f, -1.0f, 0.0f);
-		glVertex3f( w,-h, d);
-		glVertex3f(-w,-h, d);
-		glVertex3f(-w,-h,-d);
-		glVertex3f( w,-h,-d);
-		// front
-		glNormal3f( 0.0f, 0.0f, 1.0f);
-		glVertex3f( w, h, d);
-		glVertex3f(-w, h, d);
-		glVertex3f(-w,-h, d);
-		glVertex3f( w,-h, d);
-		// back
-		glNormal3f( 0.0f, 0.0f, -1.0f);
-		glVertex3f( w,-h,-d);
-		glVertex3f(-w,-h,-d);
-		glVertex3f(-w, h,-d);
-		glVertex3f( w, h,-d);
-		// left side
-		glNormal3f(-1.0f, 0.0f, 0.0f);
-		glVertex3f(-w, h, d);
-		glVertex3f(-w, h,-d);
-		glVertex3f(-w,-h,-d);
-		glVertex3f(-w,-h, d);
-		// Right side
-		glNormal3f( 1.0f, 0.0f, 0.0f);
-		glVertex3f( w, h,-d);
-		glVertex3f( w, h, d);
-		glVertex3f( w,-h, d);
-		glVertex3f( w,-h,-d);
-		glEnd();
+	//top
+	glNormal3f( 0.0f, 1.0f, 0.0f);
+	glVertex3f( w, h,-d);
+	glVertex3f(-w, h,-d);
+	glVertex3f(-w, h, d);
+	glVertex3f( w, h, d);
+	// bottom
+	glNormal3f( 0.0f, -1.0f, 0.0f);
+	glVertex3f( w,-h, d);
+	glVertex3f(-w,-h, d);
+	glVertex3f(-w,-h,-d);
+	glVertex3f( w,-h,-d);
+	// front
+	glNormal3f( 0.0f, 0.0f, 1.0f);
+	glVertex3f( w, h, d);
+	glVertex3f(-w, h, d);
+	glVertex3f(-w,-h, d);
+	glVertex3f( w,-h, d);
+	// back
+	glNormal3f( 0.0f, 0.0f, -1.0f);
+	glVertex3f( w,-h,-d);
+	glVertex3f(-w,-h,-d);
+	glVertex3f(-w, h,-d);
+	glVertex3f( w, h,-d);
+	// left side
+	glNormal3f(-1.0f, 0.0f, 0.0f);
+	glVertex3f(-w, h, d);
+	glVertex3f(-w, h,-d);
+	glVertex3f(-w,-h,-d);
+	glVertex3f(-w,-h, d);
+	// Right side
+	glNormal3f( 1.0f, 0.0f, 0.0f);
+	glVertex3f( w, h,-d);
+	glVertex3f( w, h, d);
+	glVertex3f( w,-h, d);
+	glVertex3f( w,-h,-d);
+	glEnd();
 	glEnd();
 }
 
@@ -467,63 +484,119 @@ void drawStreet()
 {
 	glPushMatrix();
 	glColor3f(0.2f, 0.2f, 0.2f);
-	float w = 5.0;
-	float d = 100.0;
-	float h = 0.0;
-	glTranslatef(0.0f, 0.0f, 0.0f);
+	float w = 5.0; //width
+	float d = 100.0; //depth
+	float h = 0.0; //height
+	glTranslatef(0.0f, 0.0f, 0.0f); //position
 	glBegin(GL_QUADS);
-		//top
-		glNormal3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( w, h,-d);
-		glVertex3f(-w, h,-d);
-		glVertex3f(-w, h, d);
-		glVertex3f( w, h, d);
+	//top
+	glNormal3f( 0.0f, 1.0f, 0.0f);
+	glVertex3f( w, h,-d);
+	glVertex3f(-w, h,-d);
+	glVertex3f(-w, h, d);
+	glVertex3f( w, h, d);
 	glEnd();
 	//double yellow line
-	glColor3f(0.8f, 0.8f, 0.2f);
-	w = 0.1;
-	d = 100.0;
-	h = 0.01;
+	//glColor3f(0.8f, 0.8f, 0.2f);
+	//w = 0.1;
+	//d = 100.0;
+	//h = 0.01;
 	glPushMatrix();
 	glTranslatef(-0.15f, 0.0f, 0.0f);
 	glBegin(GL_QUADS);
-		//top
-		glNormal3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( w, h,-d);
-		glVertex3f(-w, h,-d);
-		glVertex3f(-w, h, d);
-		glVertex3f( w, h, d);
+	//top
+	glNormal3f( 0.0f, 1.0f, 0.0f);
+	glVertex3f( w, h,-d);
+	glVertex3f(-w, h,-d);
+	glVertex3f(-w, h, d);
+	glVertex3f( w, h, d);
 	glEnd();
 	glPopMatrix();
 	glPushMatrix();
 	glTranslatef(0.15f, 0.0f, 0.0f);
 	glBegin(GL_QUADS);
-		//top
-		glNormal3f( 0.0f, 1.0f, 0.0f);
-		glVertex3f( w, h,-d);
-		glVertex3f(-w, h,-d);
-		glVertex3f(-w, h, d);
-		glVertex3f( w, h, d);
+	//top
+	glNormal3f( 0.0f, 1.0f, 0.0f);
+	glVertex3f( w, h,-d);
+	glVertex3f(-w, h,-d);
+	glVertex3f(-w, h, d);
+	glVertex3f( w, h, d);
 	glEnd();
 	glPopMatrix();
 	//guard rails
 	glColor3f(1.0f, 1.0f, 1.0f);
-	for (int i=0; i<40; i++) {
+	for (int i=0; i<100; i++) {
 		glPushMatrix();
-		glTranslatef(6.0f, -0.5f, (float)-i*2.5);
-		box(0.2, 5.0, 0.2);
+		glTranslatef(0.0f, -0.5f, (float)-i*6.5);
+		box(0.2, 2.0, 0.2);
 		glPopMatrix();
-		glPushMatrix();
-		glTranslatef(-6.0f, -0.5f, (float)-i*2.5);
-		box(0.2, 5.0, 0.2);
-		glPopMatrix();
+		collision[i][0] = 0.0;
+		collision[i][1] = -i*6.5;
 	}
+
+	//right wall
+	glColor3f(0.6f, 0.6f, 0.0f);
+	w = 0;
+	h = 2;
+	d = 100.0;
+	glPushMatrix();
+	glTranslatef(5.0f, 0.0f, 0.0f);
+	glBegin(GL_QUADS);
+	//top
+	glNormal3f( 0.0f, 1.0f, 0.0f);
+	glVertex3f(w, h, d);
+	glVertex3f(w, h,-d);
+	glVertex3f(w,-h,-d);
+	glVertex3f(w,-h, d);
+	glPopMatrix();
+	glEnd();
+
+	// left wall
+	glColor3f(0.6f, 0.0f, 0.6f);
+	w = 0;
+	h = 2;
+	d = 100.0;
+	glPushMatrix();
+	glTranslatef(-10.0f, 0.0f, 0.0f);
+	glBegin(GL_QUADS);
+	//top
+	glNormal3f( 0.0f, 1.0f, 0.0f);
+	glVertex3f(w, h, d);
+	glVertex3f(w, h,-d);
+	glVertex3f(w,-h,-d);
+	glVertex3f(w,-h, d);
+	glPopMatrix();
+	glEnd();
+
+	//ceiling
+	glPushMatrix();
+	glColor3f(0.2f, 0.2f, 0.2f);
+	w = 5.0; //width
+	d = 100.0; //depth
+	h = 0.0; //height
+	glTranslatef(0.0f, 2.0f, 0.0f); //position
+	glBegin(GL_QUADS);
+	//top
+	glNormal3f( 0.0f, 0.0f, 0.0f);
+	glVertex3f(w, h, d);
+	glVertex3f(w, h,-d);
+	glVertex3f(w,-h, d);
+	glVertex3f(w,-h,-d);
+	glEnd();
+	glPopMatrix();
 }
 
 void physics()
 {
-	//g.cameraPosition[2] -= 0.01;
-	//g.cameraPosition[0] = 1.0 + sin(g.cameraPosition[2]*0.3);
+	int xdist, zdist;
+	g.cameraPosition[2] -= 0.05;
+	for (int i = 0; i < 100; i++) {
+		xdist = abs(g.cameraPosition[0]*100 - collision[i][0]*100);
+		zdist = abs(g.cameraPosition[2]*100 - collision[i][1]*100);
+		if (xdist <= 10 && zdist <= 30) {
+			printf("collision at %0.2f, %0.2f\n", collision[i][0], collision[i][1]);
+		}
+	}	
 }
 
 void render()
@@ -542,13 +615,13 @@ void render()
 	spot[1] = g.cameraPosition[1] + g.dir[1];
 	spot[2] = g.cameraPosition[2] + g.dir[2];
 	gluLookAt(g.cameraPosition[0], g.cameraPosition[1], g.cameraPosition[2],
-		spot[0], spot[1], spot[2], 0,1,0);
+			spot[0], spot[1], spot[2], 0,1,0);
 	//for documentation...
 	/*Vec up = {0,1,0};
-	gluLookAt(
-		g.cameraPosition[0], g.cameraPosition[1], g.cameraPosition[2],
-		g.cameraPosition[0], g.cameraPosition[1], g.cameraPosition[2]-1.0,
-		up[0], up[1], up[2]);*/
+	  gluLookAt(
+	  g.cameraPosition[0], g.cameraPosition[1], g.cameraPosition[2],
+	  g.cameraPosition[0], g.cameraPosition[1], g.cameraPosition[2]-1.0,
+	  up[0], up[1], up[2]);*/
 	glLightfv(GL_LIGHT0, GL_POSITION, g.lightPosition);
 	//
 	drawStreet();
@@ -569,8 +642,13 @@ void render()
 	r.bot = g.yres - 20;
 	r.left = 10;
 	r.center = 0;
-	ggprint8b(&r, 16, 0x00887766, "car framework");
-	glPopAttrib();
+	if (g.display_startmenu) {
+		ggprint8b(&r, 16, 0x00887766, "Start menu");
+	} else {
+		ggprint8b(&r, 16, 0x00887766, "cam pos: (%0.2f, %0.2f, %0.2f)",
+				g.cameraPosition[0], g.cameraPosition[1], g.cameraPosition[2]);
+	}
+		glPopAttrib();
 }
 
 
