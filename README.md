@@ -1,4 +1,6 @@
 # Dodge 3D
+![Main Menu](images/menu.png "Main Menu")
+
 Dodge 3D is a game in which the main objective is to collect as many coins as possible while avoiding death by dodging harmful items (spikes and bombs). Other items include hearts which replenish 25% of the player's health and stars which give the player invincibility for three seconds.
 
 ## Getting Started
