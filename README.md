@@ -8,7 +8,7 @@ The game can be downloading using the following command:
 git clone https://github.com/kyleoverstreet/dodge-3d
 ```
 
-## Pre-requisites
+## Prerequisites
 OpenGL, OpenAL, and Xlib must be installed to run Dodge 3D.
 
 Users on Linux machines can try installing the necessary libraries using the following commands:
@@ -20,7 +20,7 @@ sudo apt-get install libglu1-mesa-dev
 ```
 
 ## Deployment
-The game can be compiled using the ```make``` which will create an executable file.
+The game can be compiled using the ```make``` command which will create an executable file.
 
 
 ## Built With
