@@ -26,6 +26,6 @@ The game can be compiled using the ```make``` command which will create an execu
 
 
 ## Built With
-* [C++](https://en.wikipedia.org/wiki/HTML)
+* C++
 * [OpenGL](https://www.opengl.org/) (graphics)
 * [OpenAL](https://www.openal.org/) (sounds)
