@@ -4,7 +4,7 @@
 Dodge 3D is a game in which the main objective is to collect as many coins as possible while avoiding death by dodging harmful items (spikes and bombs). Other items include hearts which replenish 25% of the player's health and stars which give the player invincibility for three seconds.
 
 ## Getting Started
-The game can be downloading using the following command:
+The game can be downloaded using the following command:
 
 ```
 git clone https://github.com/kyleoverstreet/dodge-3d
@@ -13,7 +13,7 @@ git clone https://github.com/kyleoverstreet/dodge-3d
 ## Prerequisites
 OpenGL, OpenAL, and Xlib must be installed to run Dodge 3D.
 
-Users on Linux machines can try installing the necessary libraries using the following commands:
+Users on Linux machines can try install the necessary libraries using the following commands:
 
 ```
 sudo apt install libalut-dev
